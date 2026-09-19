@@ -36,3 +36,10 @@ case ":$PATH:" in
     *":$BIN_DIR:"*) ;;
     *) echo "note: add $BIN_DIR to your PATH" ;;
 esac
+
+echo ""
+echo "Get started:"
+echo "  kc start    start the background watcher"
+echo "  kc ls       list Claude sessions and their memory usage"
+echo "  kc status   check whether the watcher is running"
+echo "  kc --help   see all commands"
