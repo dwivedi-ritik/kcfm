@@ -10,11 +10,19 @@ You can resume the killed session whenever needed nothing will be lost.
 
 ## Install
 
+Needs only `python3` with 0 dependencies. Installs a single `kc` command to `~/.local/bin`.
+
+Without cloning:
+
+```
+curl -fsSL https://raw.githubusercontent.com/dwivedi-ritik/kcfm/main/install.sh | sh
+```
+
+From a clone:
+
 ```
 ./install.sh
 ```
-
-Needs only `python3` with 0 dependencies. Installs a global `kc` command.
 
 ## Run
 
@@ -51,4 +59,15 @@ kc --reset-config         # back to defaults (also stops the watcher)
 
 Stored in `~/.kc.conf.json`; changes apply live to a running watcher.
 A marked session is reprieved if it becomes active before the sweep time.
+
+## Uninstall
+
+Stop the watcher and delete the binary and its files:
+
+```
+kc stop
+rm -f ~/.local/bin/kc ~/.kc.json ~/.kc.conf.json ~/.kc.log
+```
+
+This never touches your conversations — they live in Claude Code's own transcripts.
 

@@ -147,8 +147,11 @@ def handle_config_flags(args):
 def main():
     p = argparse.ArgumentParser(
         prog="kc",
-        description="Hibernate idle Claude Code sessions to free memory; "
-                    "wake them later with full history.")
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        description="kill-claude-for-memory — sleep idle Claude Code sessions "
+                    "to free memory; wake them later with full history.",
+        epilog="uninstall:\n"
+               "  kc stop && rm -f ~/.local/bin/kc ~/.kc.json ~/.kc.conf.json ~/.kc.log")
     p.add_argument("--set-mark-time", type=int, metavar="SECS",
                    help="idle seconds before a session is marked")
     p.add_argument("--set-sweep-time", type=int, metavar="SECS",
