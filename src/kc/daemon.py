@@ -89,4 +89,4 @@ def status():
         up = fmt_dur(time.time() - rec.get("startedAt", time.time()))
         print(f"running (pid {rec['pid']}, up {up}); log: {LOG_FILE}")
     else:
-        print("not running")
+        print("not running — start it with: kc start")

@@ -112,7 +112,7 @@ def cmd_run(args):
 
 def cmd_log(args):
     if not daemon.is_running():
-        print("not running")
+        print("not running — start it with: kc start")
         return
     try:
         subprocess.run(["tail", "-f", LOG_FILE])
