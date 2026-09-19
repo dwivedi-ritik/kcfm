@@ -1,4 +1,4 @@
-"""Hibernate, wake, and tag sessions."""
+"""Sleep and wake sessions."""
 
 import os
 import signal
@@ -7,15 +7,12 @@ import time
 
 from . import state as state_mod
 from .config import TERM_WAIT_SECS
-from .sessions import has_children, proc_rss_mb, resolve
+from .sessions import proc_rss_mb, resolve
 
 
-def hibernate_one(s, state, force=False):
+def sleep_one(s, state):
     """Snapshot then kill one live session. Returns freed MB or None."""
     label = s["name"] or s["sid"][:8]
-    if not force and (s["status"] == "busy" or has_children(s["pid"])):
-        print(f"skip {label}: busy (use --force to override)")
-        return None
     if s["tsize"] is None:
         print(f"skip {label}: no transcript yet, nothing to resume")
         return None
@@ -36,7 +33,7 @@ def hibernate_one(s, state, force=False):
         os.kill(s["pid"], signal.SIGKILL)
     except ProcessLookupError:
         pass
-    print(f"froze {label} ({s['sid'][:8]}), freed ~{rss}MB")
+    print(f"slept {label} ({s['sid'][:8]}), freed ~{rss}MB")
     return rss
 
 
@@ -57,21 +54,3 @@ def wake(target, state, live):
         os.chdir(h["cwd"])
     # exec replaces this process — the session resumes in the user's terminal
     os.execvp("claude", ["claude", "--resume", sid])
-
-
-def edit_tags(target, tags, state, live, add):
-    live_hits, hib = resolve(target, live, state)
-    sids = [s["sid"] for s in live_hits] + list(hib)
-    if not sids:
-        print(f"no session matches '{target}'")
-        sys.exit(1)
-    for sid in sids:
-        current = state["tags"].setdefault(sid, [])
-        for t in tags:
-            if add and t not in current:
-                current.append(t)
-            elif not add and t in current:
-                current.remove(t)
-        if not current:
-            del state["tags"][sid]
-    state_mod.save(state)

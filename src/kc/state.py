@@ -10,13 +10,13 @@ def load():
             state = json.load(f)
     except (OSError, ValueError):
         state = {}
-    for key in ("tags", "hibernated", "marks"):
+    for key in ("hibernated", "marks"):
         state.setdefault(key, {})
     return state
 
 
 def save(state):
-    # temp + rename so a concurrent ccbear never sees a half-written file
+    # temp + rename so a concurrent kc never sees a half-written file
     tmp = STATE_FILE + ".tmp"
     with open(tmp, "w") as f:
         json.dump(state, f, indent=2)

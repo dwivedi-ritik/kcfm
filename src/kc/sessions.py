@@ -52,7 +52,7 @@ def transcript_path(cwd, session_id):
     return os.path.join(PROJECTS_DIR, enc, session_id + ".jsonl")
 
 
-def live_sessions(state):
+def live_sessions():
     """Sessions with a verified live claude process behind them."""
     sessions = []
     try:
@@ -86,18 +86,12 @@ def live_sessions(state):
             "transcript": tpath,
             "tsize": tsize,
             "tmtime": tmtime,
-            "tags": state["tags"].get(sid, []),
         })
     return sessions
 
 
 def resolve(target, live, state):
-    """Match name, pid, sessionId prefix, or @tag against live and hibernated."""
-    if target.startswith("@"):
-        tag = target[1:]
-        return ([s for s in live if tag in s["tags"]],
-                {sid: h for sid, h in state["hibernated"].items()
-                 if tag in state["tags"].get(sid, [])})
+    """Match name, pid, or sessionId prefix against live and hibernated."""
     live_hits = [s for s in live
                  if target in (s["name"], str(s["pid"])) or s["sid"].startswith(target)]
     hib_hits = {sid: h for sid, h in state["hibernated"].items()

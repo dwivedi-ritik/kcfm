@@ -37,7 +37,7 @@ def is_running():
 
 
 def _self_cmd():
-    """Command to relaunch ccbear, resolving argv[0] to an absolute path."""
+    """Command to relaunch kc, resolving argv[0] to an absolute path."""
     prog = sys.argv[0]
     if os.path.sep not in prog:
         prog = shutil.which(prog) or prog
@@ -60,7 +60,7 @@ def start():
         return
     set_daemon({"pid": p.pid, "startEpoch": proc_start_epoch(p.pid),
                 "startedAt": time.time()})
-    print(f"ccbear running in background (pid {p.pid}); log: {LOG_FILE}")
+    print(f"kc running in background (pid {p.pid}); log: {LOG_FILE}")
 
 
 def stop_running():

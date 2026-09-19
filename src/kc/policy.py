@@ -3,8 +3,8 @@
 import time
 
 from . import state as state_mod
-from .actions import hibernate_one
-from .config import PIN_TAG, load_conf
+from .actions import sleep_one
+from .config import load_conf
 from .sessions import has_children, live_sessions
 
 
@@ -21,7 +21,7 @@ def fmt_dur(secs):
 
 def auto_pass(state, dry=False):
     cfg = load_conf()  # re-read each pass so config changes apply live
-    live = live_sessions(state)
+    live = live_sessions()
     state_mod.reconcile(state, live)
     now = time.time()
     for s in live:
@@ -29,7 +29,7 @@ def auto_pass(state, dry=False):
         mark = state["marks"].get(sid)
         active = (s["status"] == "busy" or has_children(s["pid"])
                   or now - s["last_activity"] < cfg["mark_time"])
-        if PIN_TAG in s["tags"] or active:
+        if active:
             if mark:
                 del state["marks"][sid]
                 state_mod.save(state)
@@ -44,7 +44,7 @@ def auto_pass(state, dry=False):
                 if dry:
                     print(f"would freeze {label}")
                 else:
-                    hibernate_one(s, state)
+                    sleep_one(s, state)
         elif s["tsize"] is not None:
             if dry:
                 print(f"would mark {label}")

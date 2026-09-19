@@ -5,16 +5,37 @@ import time
 
 from . import daemon
 from . import state as state_mod
-from .actions import edit_tags, hibernate_one, wake
+from .actions import sleep_one, wake
 from .config import CONF_FILE, DEFAULTS, load_conf, reset_conf, set_conf
 from .policy import auto_pass, fmt_dur
 from .sessions import has_children, live_sessions, proc_rss_mb, resolve
+
+# standard ANSI colors, applied only when writing to a real terminal
+GREEN, YELLOW, CYAN, DIM = "32", "33", "36", "2"
+
+
+def _color(text, code):
+    if not code or not sys.stdout.isatty():
+        return text
+    return f"\033[{code}m{text}\033[0m"
+
+
+def _state_color(state):
+    return {"IDLE": GREEN, "BUSY": CYAN, "FROZEN": DIM}.get(state)
+
+
+def _sweep_color(sweep):
+    if sweep.startswith("marked"):
+        return YELLOW
+    if sweep.startswith("freed"):
+        return CYAN
+    return None
 
 
 def cmd_ls(args):
     state = state_mod.load()
     cfg = load_conf()
-    live = live_sessions(state)
+    live = live_sessions()
     state_mod.reconcile(state, live)
     home = os.path.expanduser("~")
     rows = []
@@ -26,50 +47,51 @@ def cmd_ls(args):
             sweep = f"marked, {fmt_dur(left)} left"
         else:
             sweep = "-"
-        rows.append((s["name"], "busy" if busy else "idle", sweep,
+        rows.append((s["name"], "BUSY" if busy else "IDLE", sweep,
                      fmt_dur(time.time() - s["last_activity"]),
-                     f"{proc_rss_mb(s['pid'])}M", ",".join(s["tags"]),
+                     f"{proc_rss_mb(s['pid'])}M",
                      s["sid"][:8], s["cwd"].replace(home, "~")))
     for sid, h in state["hibernated"].items():
         freed = f"freed ~{h['freedMb']}M" if h.get("freedMb") else "freed"
-        rows.append((h.get("name", ""), "frozen", freed,
+        rows.append((h.get("name", ""), "FROZEN", freed,
                      fmt_dur(time.time() - h.get("frozenAt", 0)), "-",
-                     ",".join(state["tags"].get(sid, [])), sid[:8],
-                     h.get("cwd", "").replace(home, "~")))
+                     sid[:8], h.get("cwd", "").replace(home, "~")))
     if not rows:
         print("no sessions")
         return
-    headers = ("NAME", "STATE", "SWEEP", "IDLE", "MEM", "TAGS", "SESSION", "CWD")
+    headers = ("NAME", "STATE", "SWEEP", "IDLE", "MEM", "SESSION", "CWD")
     widths = [max(len(headers[i]), *(len(r[i]) for r in rows)) for i in range(len(headers))]
-    for row in (headers, *rows):
-        print("  ".join(c.ljust(w) for c, w in zip(row, widths)).rstrip())
+    print("  ".join(h.ljust(w) for h, w in zip(headers, widths)).rstrip())
+    for row in rows:
+        # color STATE and SWEEP after padding, so column widths stay aligned
+        cells = [c.ljust(w) for c, w in zip(row, widths)]
+        cells[1] = _color(cells[1], _state_color(row[1]))
+        cells[2] = _color(cells[2], _sweep_color(row[2]))
+        print("  ".join(cells).rstrip())
 
 
-def cmd_hibernate(args):
+def cmd_sleep(args):
     state = state_mod.load()
-    live = live_sessions(state)
+    live = live_sessions()
     for target in args.target:
         hits, _ = resolve(target, live, state)
         if not hits:
             print(f"no live session matches '{target}'")
             continue
         for s in hits:
-            hibernate_one(s, state, force=args.force)
+            sleep_one(s, state)
 
 
 def cmd_wake(args):
     state = state_mod.load()
-    wake(args.target, state, live_sessions(state))
+    wake(args.target, state, live_sessions())
 
 
-def cmd_tag(args):
-    state = state_mod.load()
-    edit_tags(args.target, args.tags, state, live_sessions(state), add=True)
-
-
-def cmd_untag(args):
-    state = state_mod.load()
-    edit_tags(args.target, args.tags, state, live_sessions(state), add=False)
+def cmd_config(args):
+    cfg = load_conf()
+    print(f"mark_time   {cfg['mark_time']}s   (idle before a session is marked)")
+    print(f"sweep_time  {cfg['sweep_time']}s   (from mark to sleep)")
+    print(f"interval    {cfg['interval']}s   (between watcher passes)")
 
 
 def cmd_auto(args):
@@ -80,7 +102,7 @@ def cmd_run(args):
     sys.stdout.reconfigure(line_buffering=True)  # visible when piped to a log
     cfg = load_conf()
     interval = args.interval or cfg["interval"]
-    print(f"ccbear watching: mark after {fmt_dur(cfg['mark_time'])} idle, "
+    print(f"kc watching: mark after {fmt_dur(cfg['mark_time'])} idle, "
           f"sweep {fmt_dur(cfg['sweep_time'])} later, pass every {fmt_dur(interval)}")
     while True:
         try:
@@ -116,7 +138,7 @@ def handle_config_flags(args):
 
 def main():
     p = argparse.ArgumentParser(
-        prog="ccbear",
+        prog="kc",
         description="Hibernate idle Claude Code sessions to free memory; "
                     "wake them later with full history.")
     p.add_argument("--set-mark-time", type=int, metavar="SECS",
@@ -128,26 +150,16 @@ def main():
     sub = p.add_subparsers(dest="cmd")
 
     sub.add_parser("ls", help="list sessions").set_defaults(fn=cmd_ls)
+    sub.add_parser("config", help="show current settings").set_defaults(fn=cmd_config)
 
-    sp = sub.add_parser("hibernate", help="freeze session(s)")
+    sp = sub.add_parser("sleep", help="sleep session(s) to free memory")
     sp.add_argument("target", nargs="+",
-                    help="session name, pid, sessionId prefix, or @tag")
-    sp.add_argument("--force", action="store_true", help="freeze even if busy")
-    sp.set_defaults(fn=cmd_hibernate)
+                    help="session name, pid, or sessionId prefix")
+    sp.set_defaults(fn=cmd_sleep)
 
-    sp = sub.add_parser("wake", help="resume a hibernated session here")
+    sp = sub.add_parser("wake", help="resume a sleeping session here")
     sp.add_argument("target")
     sp.set_defaults(fn=cmd_wake)
-
-    sp = sub.add_parser("tag", help="add tags to a session")
-    sp.add_argument("target")
-    sp.add_argument("tags", nargs="+")
-    sp.set_defaults(fn=cmd_tag)
-
-    sp = sub.add_parser("untag", help="remove tags from a session")
-    sp.add_argument("target")
-    sp.add_argument("tags", nargs="+")
-    sp.set_defaults(fn=cmd_untag)
 
     sp = sub.add_parser("auto", help="one mark-and-sweep pass")
     sp.add_argument("--dry-run", action="store_true", help="report, touch nothing")
