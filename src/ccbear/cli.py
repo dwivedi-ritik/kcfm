@@ -3,6 +3,7 @@ import os
 import sys
 import time
 
+from . import daemon
 from . import state as state_mod
 from .actions import edit_tags, hibernate_one, wake
 from .config import CONF_FILE, DEFAULTS, load_conf, reset_conf, set_conf
@@ -10,7 +11,7 @@ from .policy import auto_pass, fmt_dur
 from .sessions import has_children, live_sessions, proc_rss_mb, resolve
 
 
-def cmd_ps(args):
+def cmd_ls(args):
     state = state_mod.load()
     cfg = load_conf()
     live = live_sessions(state)
@@ -19,25 +20,26 @@ def cmd_ps(args):
     rows = []
     for s in sorted(live, key=lambda s: s["last_activity"], reverse=True):
         mark = state["marks"].get(s["sid"])
-        if s["status"] == "busy" or has_children(s["pid"]):
-            st = "busy"
-        elif mark:
+        busy = s["status"] == "busy" or has_children(s["pid"])
+        if mark:
             left = cfg["sweep_time"] - (time.time() - mark["markedAt"])
-            st = f"marked({fmt_dur(left)})"
+            sweep = f"marked, {fmt_dur(left)} left"
         else:
-            st = "idle"
-        rows.append((s["name"], st, fmt_dur(time.time() - s["last_activity"]),
+            sweep = "-"
+        rows.append((s["name"], "busy" if busy else "idle", sweep,
+                     fmt_dur(time.time() - s["last_activity"]),
                      f"{proc_rss_mb(s['pid'])}M", ",".join(s["tags"]),
                      s["sid"][:8], s["cwd"].replace(home, "~")))
     for sid, h in state["hibernated"].items():
-        rows.append((h.get("name", ""), "frozen",
+        freed = f"freed ~{h['freedMb']}M" if h.get("freedMb") else "freed"
+        rows.append((h.get("name", ""), "frozen", freed,
                      fmt_dur(time.time() - h.get("frozenAt", 0)), "-",
                      ",".join(state["tags"].get(sid, [])), sid[:8],
                      h.get("cwd", "").replace(home, "~")))
     if not rows:
         print("no sessions")
         return
-    headers = ("NAME", "STATE", "IDLE", "MEM", "TAGS", "SESSION", "CWD")
+    headers = ("NAME", "STATE", "SWEEP", "IDLE", "MEM", "TAGS", "SESSION", "CWD")
     widths = [max(len(headers[i]), *(len(r[i]) for r in rows)) for i in range(len(headers))]
     for row in (headers, *rows):
         print("  ".join(c.ljust(w) for c, w in zip(row, widths)).rstrip())
@@ -92,6 +94,9 @@ def handle_config_flags(args):
     """Returns True if any config operation ran (CLI exits after)."""
     ran = False
     if args.reset_config:
+        pid = daemon.stop_running()
+        if pid:
+            print(f"stopped background watcher (pid {pid})")
         reset_conf()
         print("config reset to defaults: " + ", ".join(
             f"{k}={v}s" for k, v in DEFAULTS.items()))
@@ -122,7 +127,7 @@ def main():
                    help="reset config to defaults")
     sub = p.add_subparsers(dest="cmd")
 
-    sub.add_parser("ps", help="list sessions").set_defaults(fn=cmd_ps)
+    sub.add_parser("ls", help="list sessions").set_defaults(fn=cmd_ls)
 
     sp = sub.add_parser("hibernate", help="freeze session(s)")
     sp.add_argument("target", nargs="+",
@@ -148,10 +153,17 @@ def main():
     sp.add_argument("--dry-run", action="store_true", help="report, touch nothing")
     sp.set_defaults(fn=cmd_auto)
 
-    sp = sub.add_parser("run", help="watch sessions: mark and sweep on a loop")
+    sp = sub.add_parser("run", help="watch sessions in the foreground")
     sp.add_argument("--interval", type=int, metavar="SECS",
                     help="seconds between passes (default from config)")
     sp.set_defaults(fn=cmd_run)
+
+    sub.add_parser("start", help="start the background watcher"
+                   ).set_defaults(fn=lambda a: daemon.start())
+    sub.add_parser("stop", help="stop the background watcher"
+                   ).set_defaults(fn=lambda a: daemon.stop())
+    sub.add_parser("status", help="is the background watcher running?"
+                   ).set_defaults(fn=lambda a: daemon.status())
 
     args = p.parse_args()
     if handle_config_flags(args):

@@ -23,6 +23,7 @@ def hibernate_one(s, state, force=False):
     # snapshot BEFORE killing: graceful exit deletes claude's sessions/<pid>.json
     state["hibernated"][s["sid"]] = {
         "name": s["name"], "cwd": s["cwd"], "frozenAt": time.time(),
+        "freedMb": rss,
     }
     state["marks"].pop(s["sid"], None)
     state_mod.save(state)
