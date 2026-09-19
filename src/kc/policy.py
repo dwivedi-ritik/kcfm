@@ -2,6 +2,7 @@
 
 import time
 
+from . import log
 from . import state as state_mod
 from .actions import sleep_one
 from .config import load_conf
@@ -33,17 +34,17 @@ def auto_pass(state):
             if mark:
                 del state["marks"][sid]
                 state_mod.save(state)
-                print(f"reprieved {label}")
+                log.event("REPRIEVE", label)
             continue
         if mark:
             if (s["tsize"], s["tmtime"]) != (mark["tsize"], mark["tmtime"]):
                 del state["marks"][sid]
                 state_mod.save(state)
-                print(f"reprieved {label}")
+                log.event("REPRIEVE", label)
             elif now - mark["markedAt"] >= cfg["sweep_time"]:
                 sleep_one(s, state)
         elif s["tsize"] is not None:
             state["marks"][sid] = {"markedAt": now, "tsize": s["tsize"],
                                    "tmtime": s["tmtime"]}
             state_mod.save(state)
-            print(f"marked {label}: sleeping in {fmt_dur(cfg['sweep_time'])} unless active")
+            log.event("MARK", f"{label} → sleep in {fmt_dur(cfg['sweep_time'])}")

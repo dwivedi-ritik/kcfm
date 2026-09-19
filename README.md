@@ -34,6 +34,7 @@ kc wake 7c34              # resume it, full history intact
 kc start                  # start the background watcher
 kc status                 # is the watcher running?
 kc stop                   # stop the watcher
+kc log                    # tail the watcher's log
 kc run                    # watch in the foreground (what start runs)
 ```
 

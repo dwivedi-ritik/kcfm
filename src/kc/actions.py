@@ -5,6 +5,7 @@ import signal
 import sys
 import time
 
+from . import log
 from . import state as state_mod
 from .config import TERM_WAIT_SECS
 from .sessions import proc_rss_mb, resolve
@@ -14,7 +15,7 @@ def sleep_one(s, state):
     """Snapshot then kill one live session. Returns freed MB or None."""
     label = s["name"] or s["sid"][:8]
     if s["tsize"] is None:
-        print(f"skip {label}: no transcript yet, nothing to resume")
+        log.event("SKIP", f"{label} — no transcript yet, nothing to resume")
         return None
     rss = proc_rss_mb(s["pid"])
     # snapshot BEFORE killing: graceful exit deletes claude's sessions/<pid>.json
@@ -33,7 +34,7 @@ def sleep_one(s, state):
         os.kill(s["pid"], signal.SIGKILL)
     except ProcessLookupError:
         pass
-    print(f"slept {label} ({s['sid'][:8]}), freed ~{rss}MB")
+    log.event("SLEEP", f"{label} ({s['sid'][:8]}) freed ~{rss}M")
     return rss
 
 

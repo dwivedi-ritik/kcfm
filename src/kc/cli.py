@@ -1,12 +1,14 @@
 import argparse
 import os
+import subprocess
 import sys
 import time
 
 from . import daemon
+from . import log
 from . import state as state_mod
 from .actions import sleep_one, wake
-from .config import CONF_FILE, DEFAULTS, load_conf, reset_conf, set_conf
+from .config import CONF_FILE, DEFAULTS, LOG_FILE, load_conf, reset_conf, set_conf
 from .policy import auto_pass, fmt_dur
 from .sessions import has_children, live_sessions, proc_rss_mb, resolve
 
@@ -98,14 +100,24 @@ def cmd_run(args):
     sys.stdout.reconfigure(line_buffering=True)  # visible when piped to a log
     cfg = load_conf()
     interval = args.interval or cfg["interval"]
-    print(f"kc watching: mark after {fmt_dur(cfg['mark_time'])} idle, "
-          f"sweep {fmt_dur(cfg['sweep_time'])} later, pass every {fmt_dur(interval)}")
+    log.event("WATCH", f"mark {fmt_dur(cfg['mark_time'])} / "
+              f"sweep {fmt_dur(cfg['sweep_time'])} / every {fmt_dur(interval)}")
     while True:
         try:
             auto_pass(state_mod.load())
             time.sleep(interval)
         except KeyboardInterrupt:
             return
+
+
+def cmd_log(args):
+    if not daemon.is_running():
+        print("not running")
+        return
+    try:
+        subprocess.run(["tail", "-f", LOG_FILE])
+    except KeyboardInterrupt:
+        pass
 
 
 def handle_config_flags(args):
@@ -168,6 +180,7 @@ def main():
                    ).set_defaults(fn=lambda a: daemon.stop())
     sub.add_parser("status", help="is the background watcher running?"
                    ).set_defaults(fn=lambda a: daemon.status())
+    sub.add_parser("log", help="tail the watcher's log").set_defaults(fn=cmd_log)
 
     args = p.parse_args()
     if handle_config_flags(args):
