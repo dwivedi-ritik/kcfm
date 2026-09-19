@@ -12,7 +12,7 @@ You can resume the killed session whenever needed nothing will be lost.
 ./install.sh
 ```
 
-Needs only `python3`. Installs a global `kc` command. Do not any third party libs.
+Needs only `python3` with 0 dependencies. Installs a global `kc` command.
 
 ## Usage
 
@@ -40,5 +40,3 @@ kc --reset-config         # back to defaults (also stops the watcher)
 Stored in `~/.kc.conf.json`; changes apply live to a running watcher.
 A marked session is reprieved if it becomes active before the sweep time.
 
-Your conversations are never at risk — kc only frees memory; the history
-lives in Claude Code's own transcripts.
