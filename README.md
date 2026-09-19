@@ -1,13 +1,8 @@
-# kc
+#### kcfm (kill-claude-for-memory)
 
-**kill-claude-for-memory** — sleep idle Claude Code sessions to free memory
-(~300MB each), and wake them later with full conversation history intact.
-
-- **Frees memory automatically** — idle sessions are slept on a timer
-- **Wakes instantly** — resume any slept session right where you left off
-- **Sees every session** — no wrapper or setup; start `claude` however you like
-- **Configurable timing** — set how long idle before sleeping
-- **Lightweight** — a plain CLI, zero dependencies, no resident daemon
+I built this out of frustration: I found Claude Code tabs eating 2GB of memory even the ones sitting completely idle.(I use to run GTA Vice city in this much of ram.)
+**kc** kills those idle sessions to reclaim the memory. It uses a mark-and-sweep approach - a session that goes quiet is marked, and if it's still quiet after a grace period, it's swept (killed).
+and importantly you can resume the killed session whenever needed.
 
 ## Install
 
@@ -15,14 +10,14 @@
 ./install.sh
 ```
 
-Needs only `python3`. Installs a global `kc` command.
+Needs only `python3`. Installs a global `kc` command. Do not any third party libs.
 
 ## Usage
 
 ```
 kc ls                     # list sessions with state and memory freed
-kc sleep misc-7c          # free a session's memory now
-kc wake misc-7c           # resume it, full history intact
+kc sleep abc23            # free a session's memory now
+kc wake 7c34              # resume it, full history intact
 kc auto                   # one auto-sleep pass (--dry-run to preview)
 kc start                  # start the background watcher
 kc status                 # is the watcher running?
@@ -30,7 +25,7 @@ kc stop                   # stop the watcher
 kc run                    # watch in the foreground (what start runs)
 ```
 
-Targets can be a session name (`misc-7c`), pid, or sessionId prefix.
+Targets can be a session name (`7c34`), pid, or sessionId prefix like docker.
 
 ## Config
 
