@@ -1,0 +1,14 @@
+[project]
+name = "ccbear"
+version = "0.1.0"
+description = "Hibernate idle Claude Code sessions to free memory; wake them later with full history"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = []
+
+[project.scripts]
+ccbear = "ccbear.cli:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"

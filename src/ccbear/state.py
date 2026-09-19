@@ -1,0 +1,37 @@
+import json
+import os
+
+from .config import STATE_FILE
+
+
+def load():
+    try:
+        with open(STATE_FILE) as f:
+            state = json.load(f)
+    except (OSError, ValueError):
+        state = {}
+    for key in ("tags", "hibernated", "marks"):
+        state.setdefault(key, {})
+    return state
+
+
+def save(state):
+    # temp + rename so a concurrent ccbear never sees a half-written file
+    tmp = STATE_FILE + ".tmp"
+    with open(tmp, "w") as f:
+        json.dump(state, f, indent=2)
+    os.replace(tmp, STATE_FILE)
+
+
+def reconcile(state, live):
+    """Drop hibernated entries already woken elsewhere, and marks for dead sessions."""
+    live_sids = {s["sid"] for s in live}
+    changed = False
+    for sid in [s for s in state["hibernated"] if s in live_sids]:
+        del state["hibernated"][sid]
+        changed = True
+    for sid in [s for s in state["marks"] if s not in live_sids]:
+        del state["marks"][sid]
+        changed = True
+    if changed:
+        save(state)
