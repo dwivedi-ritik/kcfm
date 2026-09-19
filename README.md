@@ -69,5 +69,4 @@ kc stop
 rm -f ~/.local/bin/kc ~/.kc.json ~/.kc.conf.json ~/.kc.log
 ```
 
-This never touches your conversations — they live in Claude Code's own transcripts.
 
