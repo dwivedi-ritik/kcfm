@@ -94,10 +94,6 @@ def cmd_config(args):
     print(f"interval    {cfg['interval']}s   (between watcher passes)")
 
 
-def cmd_auto(args):
-    auto_pass(state_mod.load(), dry=args.dry_run)
-
-
 def cmd_run(args):
     sys.stdout.reconfigure(line_buffering=True)  # visible when piped to a log
     cfg = load_conf()
@@ -160,10 +156,6 @@ def main():
     sp = sub.add_parser("wake", help="resume a sleeping session here")
     sp.add_argument("target")
     sp.set_defaults(fn=cmd_wake)
-
-    sp = sub.add_parser("auto", help="one mark-and-sweep pass")
-    sp.add_argument("--dry-run", action="store_true", help="report, touch nothing")
-    sp.set_defaults(fn=cmd_auto)
 
     sp = sub.add_parser("run", help="watch sessions in the foreground")
     sp.add_argument("--interval", type=int, metavar="SECS",

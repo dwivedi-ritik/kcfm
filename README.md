@@ -1,8 +1,10 @@
-#### kcfm (kill-claude-for-memory)
+#### ☠️ kcfm (kill-claude-for-memory)
 
-I built this out of frustration: I found Claude Code tabs eating 2GB of memory even the ones sitting completely idle.(I use to run GTA Vice city in this much of ram.)
+I built this out of frustration: I found claude code eating 2GB of memory for 6 parellel tabs, A terminal app which is just idle doing nothing seriously ?? i use to play GTA Vice city in this much of memory.
+
 **kc** kills those idle sessions to reclaim the memory. It uses a mark-and-sweep approach - a session that goes quiet is marked, and if it's still quiet after a grace period, it's swept (killed).
-and importantly you can resume the killed session whenever needed.
+
+You can resume the killed session whenever needed nothing will be lost.
 
 ## Install
 
@@ -18,7 +20,6 @@ Needs only `python3`. Installs a global `kc` command. Do not any third party lib
 kc ls                     # list sessions with state and memory freed
 kc sleep abc23            # free a session's memory now
 kc wake 7c34              # resume it, full history intact
-kc auto                   # one auto-sleep pass (--dry-run to preview)
 kc start                  # start the background watcher
 kc status                 # is the watcher running?
 kc stop                   # stop the watcher

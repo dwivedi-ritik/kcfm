@@ -19,7 +19,7 @@ def fmt_dur(secs):
     return f"{secs}s"
 
 
-def auto_pass(state, dry=False):
+def auto_pass(state):
     cfg = load_conf()  # re-read each pass so config changes apply live
     live = live_sessions()
     state_mod.reconcile(state, live)
@@ -41,15 +41,9 @@ def auto_pass(state, dry=False):
                 state_mod.save(state)
                 print(f"reprieved {label}")
             elif now - mark["markedAt"] >= cfg["sweep_time"]:
-                if dry:
-                    print(f"would freeze {label}")
-                else:
-                    sleep_one(s, state)
+                sleep_one(s, state)
         elif s["tsize"] is not None:
-            if dry:
-                print(f"would mark {label}")
-            else:
-                state["marks"][sid] = {"markedAt": now, "tsize": s["tsize"],
-                                       "tmtime": s["tmtime"]}
-                state_mod.save(state)
-                print(f"marked {label}: freezing in {fmt_dur(cfg['sweep_time'])} unless active")
+            state["marks"][sid] = {"markedAt": now, "tsize": s["tsize"],
+                                   "tmtime": s["tmtime"]}
+            state_mod.save(state)
+            print(f"marked {label}: sleeping in {fmt_dur(cfg['sweep_time'])} unless active")
