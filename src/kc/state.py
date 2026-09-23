@@ -26,12 +26,21 @@ def save(state):
 def reconcile(state, live):
     """Drop hibernated entries already woken elsewhere, and marks for dead sessions."""
     live_sids = {s["sid"] for s in live}
-    changed = False
     for sid in [s for s in state["hibernated"] if s in live_sids]:
         del state["hibernated"][sid]
-        changed = True
+
     for sid in [s for s in state["marks"] if s not in live_sids]:
         del state["marks"][sid]
-        changed = True
-    if changed:
-        save(state)
+
+    # Removing session which are already closed 
+    for sid in state["hibernated"]:
+        if sid not in live_sids:
+            del state["hibernated"][sid]
+
+    for sid in state["marks"]:
+            if sid not in live_sids:
+                del state["marks"][sid]
+
+    save(state)
+
+
