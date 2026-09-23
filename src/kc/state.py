@@ -36,18 +36,24 @@ def reconcile(state, live):
         del state["marks"][sid]
         changed = True
 
-    # Removing session which are already closed 
-    for sid in state["hibernated"]:
-        if sid not in live_sids:
-            del state["hibernated"][sid]
-            changed = True
-
-    for sid in state["marks"]:
-        if sid not in live_sids:
-            del state["marks"][sid]
-            changed = True
-
     if changed:
         save(state)
 
 
+def clear_closed_sessions(state, live):
+    "Remove hibernated claude sessions from the history"
+    live_sids = {s["sid"] for s in live}
+    changed = False
+    
+    for sid in list(state["hibernated"]):
+        if sid not in live_sids:
+            del state["hibernated"][sid]
+            changed = True 
+            
+    for sid in list(state["marks"]):
+        if sid not in live_sids:
+            del state["marks"][sid]
+            changed = True 
+
+    if changed:
+        save(state)
