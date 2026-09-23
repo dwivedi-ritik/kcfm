@@ -131,6 +131,14 @@ def handle_config_flags(args):
         print("config reset to defaults: " + ", ".join(
             f"{k}={v}s" for k, v in DEFAULTS.items()))
         ran = True
+
+    if args.clear:
+        state = state_mod.load()
+        live = live_sessions()
+        state_mod.clear_closed_sessions(state, live)
+        print("Older session are cleared")
+        ran = True
+
     for key, value in (("mark_time", args.set_mark_time),
                        ("sweep_time", args.set_sweep_time)):
         if value is None:
@@ -158,6 +166,8 @@ def main():
                    help="seconds after marking before it is frozen")
     p.add_argument("--reset-config", action="store_true",
                    help="reset config to defaults")
+    p.add_argument("--clear", action="store_true",
+                   help="clear hibernated claude sessions")
     sub = p.add_subparsers(dest="cmd")
 
     sub.add_parser("ls", help="list sessions").set_defaults(fn=cmd_ls)
