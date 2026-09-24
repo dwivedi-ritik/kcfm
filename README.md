@@ -55,6 +55,7 @@ kc config                 # show current settings
 kc --set-mark-time 300    # idle seconds before a session is marked (default 600)
 kc --set-sweep-time 120   # seconds from mark to sleep (default 300)
 kc --reset-config         # back to defaults (also stops the watcher)
+kc --clear                # clear hibernated claude sessions
 ```
 
 Stored in `~/.kc.conf.json`; changes apply live to a running watcher.
